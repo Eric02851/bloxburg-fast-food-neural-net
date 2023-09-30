@@ -1,6 +1,7 @@
 import pyautogui
 import numpy as np
 import cv2 as cv
+import time
 
 centerPlus = (475, 1270) #For 2 and 4 items
 leftPlus = (476, 1160) #For 3 items
@@ -15,8 +16,10 @@ minYOffset = 77
 y1 = 0
 y2 = 0
 
+drinkFries = [(412, 1199),(552, 1360)]
+
 def displayImg(screenshot):
-    screenshot = cv.cvtColor(screenshot, cv.COLOR_RGB2BGR)
+    #screenshot = cv.cvtColor(screenshot, cv.COLOR_RGB2BGR)
     cv.imshow('screenshot', screenshot)
     cv.waitKey()
     cv.destroyAllWindows()
@@ -41,50 +44,86 @@ def getRightItem(screenshot, middle, itemOffset):
     x2 = middle[1] + plusSideOffset * (itemOffset + 1) - plusArmOsset
     return screenshot[y1:y2, x1:x2]
 
-def main():
+def getBurger(screenshot):
     global y1, y2
 
-    for i in range(20):
-        screenshot = pyautogui.screenshot()
-        screenshot = np.array(screenshot)
-        screenshot = cv.cvtColor(screenshot, cv.COLOR_RGB2BGR)
+    itemCount = 0
+    middle = getMiddle(screenshot, centerPlus)
+    if middle:
+        plusToLeft = np.allclose(screenshot[middle[0], middle[1] + plusSideOffset], plusColor, atol=10)
+        itemCount = 4 if plusToLeft else 2
+    else:
+        middle = getMiddle(screenshot, leftPlus)
+        itemCount = 3
 
-        itemCount = 0
-        middle = getMiddle(screenshot, centerPlus)
-        if middle:
-            plusToLeft = np.allclose(screenshot[middle[0], middle[1] + plusSideOffset], plusColor, atol=10)
-            itemCount = 4 if plusToLeft else 2
-        else:
-            middle = getMiddle(screenshot, leftPlus)
-            itemCount = 3
+    if not middle:
+        return []
 
-        if not middle:
-            print(False)
-            return
+    y1 = middle[0] - minYOffset
+    y2 = middle[0] + maxYOffset
 
-        y1 = middle[0] - minYOffset
-        y2 = middle[0] + maxYOffset
+    items = []
+    if itemCount == 4:
+        items.append(getLeftItem(screenshot, middle, 1))
+        items.append(getLeftItem(screenshot, middle, 0))
+        items.append(getRightItem(screenshot, middle, 0))
+        items.append(getRightItem(screenshot, middle, 1))
 
-        items = []
-        if itemCount == 4:
-            items.append(getLeftItem(screenshot, middle, 1))
-            items.append(getLeftItem(screenshot, middle, 0))
-            items.append(getRightItem(screenshot, middle, 0))
-            items.append(getRightItem(screenshot, middle, 1))
+    elif itemCount == 3:
+        items.append(getLeftItem(screenshot, middle, 0))
+        items.append(getRightItem(screenshot, middle, 0))
+        items.append(getRightItem(screenshot, middle, 1))
 
-        elif itemCount == 3:
-            items.append(getLeftItem(screenshot, middle, 0))
-            items.append(getRightItem(screenshot, middle, 0))
-            items.append(getRightItem(screenshot, middle, 1))
+    else:
+        items.append(getLeftItem(screenshot, middle, 0))
+        items.append(getRightItem(screenshot, middle, 0))
 
-        else:
-            items.append(getLeftItem(screenshot, middle, 0))
-            items.append(getRightItem(screenshot, middle, 0))
+    return items
+
+def getSideAndDrink(screenshot):
+    return screenshot[drinkFries[0][0]:drinkFries[1][0], drinkFries[0][1]:drinkFries[1][1]]
+
+def takeScreenshot():
+    screenshot = pyautogui.screenshot()
+    screenshot = np.array(screenshot)
+    screenshot = cv.cvtColor(screenshot, cv.COLOR_RGB2BGR)
+
+    return screenshot
+
+def main():
+    while True:
+        screenshot = takeScreenshot()
+        while not np.array_equal(screenshot[320, 1412], [255, 255, 255]):
+            print("Waiting")
+            time.sleep(0.1)
+            screenshot = takeScreenshot()
+
+        items = getBurger(screenshot)
+        print(f"Burger: {len(items)}")
+        if len(items) == 0:
+            print("Burger failed")
+            time.sleep(0.1)
+            continue
+        time.sleep(5)
+
+        screenshot = takeScreenshot()
+        side = getSideAndDrink(screenshot)
+        print("Side")
+        time.sleep(2.5)
+
+        drink =  []
+        screenshot = takeScreenshot()
+        if np.array_equal(screenshot[320, 1412], [255, 255, 255]):
+            print("Drink")
+            drink = getSideAndDrink(screenshot)
+            time.sleep(3)
+        print("Done")
 
         for i in range(len(items)):
-            cv.imwrite(f"item{i}.png", items[i])
+            cv.imwrite(f"items/item{i}.png", items[i])
 
-        print(itemCount)
-        return
+        cv.imwrite(f"items/side.png", side)
+        if len(drink):
+            cv.imwrite(f"items/drink.png", drink)
 
 main()
