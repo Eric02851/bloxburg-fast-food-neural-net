@@ -2,6 +2,8 @@ import pyautogui
 import numpy as np
 import cv2 as cv
 import time
+import os
+import pydirectinput
 
 centerPlus = (475, 1270) #For 2 and 4 items
 leftPlus = (476, 1160) #For 3 items
@@ -17,6 +19,8 @@ y1 = 0
 y2 = 0
 
 drinkFries = [(412, 1199),(552, 1360)]
+
+unlabledFolder = r"C:\Users\ziggy\Documents\GitHub\bloxburg-fast-food-neural-net\unlabled"
 
 def displayImg(screenshot):
     #screenshot = cv.cvtColor(screenshot, cv.COLOR_RGB2BGR)
@@ -90,40 +94,77 @@ def takeScreenshot():
 
     return screenshot
 
+def getOrder():
+    screenshot = takeScreenshot()
+
+    print("Waiting for customer")
+    while not np.array_equal(screenshot[320, 1412], [255, 255, 255]):
+        time.sleep(0.1)
+        screenshot = takeScreenshot()
+
+    items = getBurger(screenshot)
+    print(f"Burger: {len(items)}")
+    if len(items) == 0:
+        print("Burger failed")
+
+        pydirectinput.press('space')
+        time.sleep(3)
+        pydirectinput.press('e')
+        return getOrder()
+
+    time.sleep(5)
+    screenshot = takeScreenshot()
+
+    side = getSideAndDrink(screenshot)
+    print("Side")
+
+    time.sleep(2.5)
+    screenshot = takeScreenshot()
+
+    drink =  []
+    if np.array_equal(screenshot[320, 1412], [255, 255, 255]):
+        print("Drink")
+        drink = getSideAndDrink(screenshot)
+        time.sleep(3)
+
+    print("Done", end="\n\n")
+    return items, side, drink
+
+def getImageId(subfolder):
+    imageList = os.listdir(f"{unlabledFolder}/{subfolder}")
+    imageList = sorted(imageList, key=lambda x: int(x.split('.')[0]))
+
+    id = 0
+    if len(imageList) != 0:
+        id = int(imageList[-1].split('.')[0]) + 1
+
+    return id
+
 def main():
+    burgerId = getImageId("burgers")
+    sideId = getImageId("sides")
+    drinkId = getImageId("drinks")
+    print(burgerId, sideId, drinkId)
+
     while True:
-        screenshot = takeScreenshot()
-        while not np.array_equal(screenshot[320, 1412], [255, 255, 255]):
-            print("Waiting")
-            time.sleep(0.1)
-            screenshot = takeScreenshot()
+        burgerItems, side, drink = getOrder()
 
-        items = getBurger(screenshot)
-        print(f"Burger: {len(items)}")
-        if len(items) == 0:
-            print("Burger failed")
-            time.sleep(0.1)
-            continue
-        time.sleep(5)
+        for i in range(len(burgerItems)):
+            imagePath = f"{unlabledFolder}/burgers/{burgerId}.png"
+            cv.imwrite(imagePath, burgerItems[i])
+            burgerId += 1
 
-        screenshot = takeScreenshot()
-        side = getSideAndDrink(screenshot)
-        print("Side")
-        time.sleep(2.5)
+        imagePath = f"{unlabledFolder}/sides/{sideId}.png"
+        cv.imwrite(imagePath, side)
+        sideId += 1
 
-        drink =  []
-        screenshot = takeScreenshot()
-        if np.array_equal(screenshot[320, 1412], [255, 255, 255]):
-            print("Drink")
-            drink = getSideAndDrink(screenshot)
-            time.sleep(3)
-        print("Done")
-
-        for i in range(len(items)):
-            cv.imwrite(f"items/item{i}.png", items[i])
-
-        cv.imwrite(f"items/side.png", side)
         if len(drink):
-            cv.imwrite(f"items/drink.png", drink)
+            imagePath = f"{unlabledFolder}/drinks/{drinkId}.png"
+            cv.imwrite(imagePath, drink)
+            drinkId += 1
+
+        pydirectinput.press('space')
+        time.sleep(1)
+        pydirectinput.press('e')
 
 main()
