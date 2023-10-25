@@ -102,13 +102,15 @@ def getOrder():
         time.sleep(0.1)
         screenshot = takeScreenshot()
 
+    time.sleep(0.5)
     items = getBurger(screenshot)
     print(f"Burger: {len(items)}")
     if len(items) == 0:
         print("Burger failed")
 
+        time.sleep(1)
         pydirectinput.press('space')
-        time.sleep(3)
+        time.sleep(2)
         pydirectinput.press('e')
         return getOrder()
 
@@ -164,7 +166,7 @@ def main():
             drinkId += 1
 
         pydirectinput.press('space')
-        time.sleep(1)
+        time.sleep(2)
         pydirectinput.press('e')
 
 main()
