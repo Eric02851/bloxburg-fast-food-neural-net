@@ -41,9 +41,9 @@ class MenuButton:
 
 burgerOptions = [
     MenuButton(423, 504, 2132, 2272, "onion"),
-    MenuButton(540, 585, 2130, 2265, "cheese"),
+    MenuButton(540, 593, 2130, 2265, "cheese"),
     MenuButton(615, 695, 2069, 2185, "patty"),
-    MenuButton(596, 698, 2203, 2328, "vegiePatty"),
+    MenuButton(596, 698, 2203, 2328, "veggiePatty"),
     MenuButton(704, 810, 2128, 2265, "tomato"),
     MenuButton(827, 911, 2132, 2269, "lettuce"),
     MenuButton(323, 412, 2288, 2376, "undo")
@@ -121,7 +121,8 @@ def getBurger(screenshot):
     return padImage(screenshot, 826)
 
 def getSideAndDrink(screenshot):
-    return screenshot[minY:maxY, burger2min:burger2max]
+    screenshot = screenshot[minY:maxY, burger2min:burger2max]
+    return padImage(screenshot, 826)
 
 def takeScreenshot():
     screenshot = pyautogui.screenshot()
@@ -146,7 +147,8 @@ def getOrder():
     side = getSideAndDrink(screenshot)
     print("Got side")
 
-    time.sleep(2.5)
+    #time.sleep(2.5)
+    time.sleep(2)
     screenshot = takeScreenshot()
     drink =  []
     if np.array_equal(screenshot[320, 1412], [255, 255, 255]):
@@ -187,13 +189,19 @@ def onClick(x, y, mouseButton, pressed):
             if b.clicked(x, y):
                 if b.name == "done": #check here if the order is good or not
                     time.sleep(1.5)
-                    screenshot = takeScreenshot()
-                    if np.array_equal(screenshot[640, 2250], [74, 175, 101]):
-                        print("valid")
-                        order["valid"] = True
-                    order["done"] = True
+                    while True:
+                        print("Checking validity")
+                        screenshot = takeScreenshot()
+                        if np.array_equal(screenshot[600, 2267], [74, 175, 101]):
+                            print("Valid")
+                            order["valid"] = True
+                            break
+                        elif np.array_equal(screenshot[600, 2267], [39, 65, 170]):
+                            print("Invalid")
+                            break
+                        time.sleep(0.1)
 
-                    print(order)
+                    order["done"] = True
                     print("Done")
                     catagory = catagoryOptions[0]
                 else: catagory = b
@@ -227,16 +235,15 @@ def writeCSVs(images, imageIds, order):
             j = 0
             items = order["burger"]
 
-            while j < len(items) - 1:
-                if items[j] == items[j + 1]:
-                    row[1] += f",{items[j]}2"
-                    j += 2
+            while j < len(items):
+                if items.count(items[j]) > 1:
+                    duplicate = items[j]
+                    while j < len(items) and items[j] == duplicate:
+                        j += 1
+                    row[1] += f",{duplicate}2"
                 else:
                     row[1] += f",{items[j]}"
                     j += 1
-
-            if j == len(items) - 1:
-                row[1] += f",{items[j]}"
 
             row[1] = row[1][1:]
         else:
@@ -252,7 +259,6 @@ def listenerThread():
     with mouse.Listener(on_click=onClick) as listener:
         listener.join()
 
-
 def main():
     imageIds = getImageIds()
     print(imageIds["burger"], imageIds["side"], imageIds["drink"])
@@ -266,8 +272,8 @@ def main():
             time.sleep(0.5)
 
         if order["valid"]:
-            imageIds = writeImages(images, imageIds)
             writeCSVs(images, imageIds, order)
+            imageIds = writeImages(images, imageIds)
 
         order["done"] = False
         order["valid"] = False
@@ -275,7 +281,6 @@ def main():
 
         for i in order["side"]: order["side"][i] = ""
         for i in order["drink"]: order["drink"][i] = ""
-
-        time.sleep(2)
+        time.sleep(1)
 
 main()
