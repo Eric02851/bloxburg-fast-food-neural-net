@@ -21,8 +21,8 @@ minY = 410
 maxY = 550
 
 csvHeader = ["imageName", "labels"]
-imageFolder = r"C:\Users\ziggy\Documents\GitHub\bloxburg-fast-food-neural-net\labeled"
-csvFolder = r"C:\Users\ziggy\Documents\GitHub\bloxburg-fast-food-neural-net\csv"
+imageFolder = r"C:\Users\ziggy\Documents\GitHub\bloxburg-fast-food-neural-net\labledData\images"
+csvFolder = r"C:\Users\ziggy\Documents\GitHub\bloxburg-fast-food-neural-net\labledData\csv"
 
 class MenuButton:
     def __init__(self, minY, maxY, minX, maxX, name, subButtons = None):
